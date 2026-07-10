@@ -29,6 +29,18 @@ const GameUI = {
       window.location.href = 'index.html';
     });
     document.getElementById('btnReplay')?.addEventListener('click', () => this.playCurrentSound());
+
+    // 统一处理所有播放按钮，避免个别关卡绑定遗漏
+    this.stage?.addEventListener('click', (e) => {
+      const playBtn = e.target.closest('#btnPlay');
+      if (!playBtn || playBtn.disabled) return;
+      e.preventDefault();
+      this.playCurrentSound();
+      const r = GameEngine.getCurrentRound();
+      if (r?.type === 'whack' && !this.whackActive && !GameEngine.locked) {
+        this.startWhackGame();
+      }
+    });
   },
 
   render() {
@@ -67,10 +79,6 @@ const GameUI = {
     const r = GameEngine.getCurrentRound();
 
     if (r?.type === 'whack') {
-      document.getElementById('btnPlay')?.addEventListener('click', () => {
-        this.playCurrentSound();
-        this.startWhackGame();
-      });
       this.stage.querySelectorAll('.whack-mole').forEach(btn => {
         btn.addEventListener('click', () => this.handleWhackClick(btn));
       });
@@ -83,8 +91,6 @@ const GameUI = {
       });
       return;
     }
-
-    document.getElementById('btnPlay')?.addEventListener('click', () => this.playCurrentSound());
 
     this.stage.querySelectorAll('[data-answer]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -100,8 +106,6 @@ const GameUI = {
 
     const status = document.getElementById('whackStatus');
     const fill = document.getElementById('whackTimerFill');
-    const playBtn = document.getElementById('btnPlay');
-    if (playBtn) playBtn.disabled = true;
 
     this.whackTimeLeft = 10;
     if (status) status.textContent = '锤它！找到正确音标的那只地鼠！';
@@ -200,7 +204,10 @@ const GameUI = {
 
   playCurrentSound() {
     const r = GameEngine.getCurrentRound();
-    if (r) speakPhoneme(r.targetKey, r.roundWord);
+    if (!r) return;
+    refreshVoice();
+    if ('speechSynthesis' in window) window.speechSynthesis.resume();
+    speakPhoneme(r.targetKey, r.roundWord);
   },
 
   revealDescribeContent() {
@@ -212,7 +219,6 @@ const GameUI = {
       content.classList.add('describe-revealed');
     }
 
-    document.getElementById('btnPlay')?.addEventListener('click', () => this.playCurrentSound());
     this.stage.querySelectorAll('[data-answer]').forEach(btn => {
       btn.addEventListener('click', () => {
         if (GameEngine.locked) return;

@@ -372,10 +372,11 @@ function getDescribeEntry(key) {
   return DESCRIBE_WORDS[key] || { word: PHONEMES[key].word, hint: PHONEMES[key].hint };
 }
 
-/* ── 发音引擎：点击播放一次，切换题目即停止 ── */
+/* ── 发音引擎：每次点击必播，兼容 Chrome / Edge ── */
 
 let _cachedVoice = null;
-let _voiceReady = false;
+let _voiceInitDone = false;
+let _voiceInitPromise = null;
 
 const SPEECH_DEFAULTS = {
   lang: 'en-GB',
@@ -385,6 +386,7 @@ const SPEECH_DEFAULTS = {
 };
 
 function pickBestVoice(voices) {
+  if (!voices?.length) return null;
   const rules = [
     v => v.name.includes('Google UK English Female'),
     v => v.name.includes('Google UK English Male'),
@@ -400,29 +402,45 @@ function pickBestVoice(voices) {
     const v = voices.find(rule);
     if (v) return v;
   }
-  return voices[0] || null;
+  return voices[0];
+}
+
+function refreshVoice() {
+  if (!('speechSynthesis' in window)) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length) {
+    _cachedVoice = pickBestVoice(voices);
+    _voiceInitDone = true;
+  }
+  return _cachedVoice;
 }
 
 function initVoice() {
   if (!('speechSynthesis' in window)) return Promise.resolve(null);
-  return new Promise(resolve => {
-    const load = () => {
-      const voices = window.speechSynthesis.getVoices();
-      if (voices.length) {
-        _cachedVoice = pickBestVoice(voices);
-        _voiceReady = true;
-        resolve(_cachedVoice);
-      }
+  if (_voiceInitPromise) return _voiceInitPromise;
+
+  _voiceInitPromise = new Promise(resolve => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      resolve(refreshVoice());
     };
-    load();
-    if (!_voiceReady) {
-      window.speechSynthesis.onvoiceschanged = () => {
-        load();
-        window.speechSynthesis.onvoiceschanged = null;
-      };
-      setTimeout(load, 300);
+
+    refreshVoice();
+    if (_voiceInitDone) {
+      finish();
+      return;
     }
+
+    window.speechSynthesis.onvoiceschanged = () => {
+      refreshVoice();
+      finish();
+    };
+    setTimeout(finish, 600);
   });
+
+  return _voiceInitPromise;
 }
 
 function stopSpeech() {
@@ -432,19 +450,39 @@ function stopSpeech() {
 }
 
 function speakWord(word, options = {}) {
-  if (!('speechSynthesis' in window)) return;
+  if (!('speechSynthesis' in window) || !word) return;
 
-  stopSpeech();
+  refreshVoice();
+  const synth = window.speechSynthesis;
+  synth.cancel();
 
-  const opts = { ...SPEECH_DEFAULTS, ...options };
-  const utter = new SpeechSynthesisUtterance(word);
-  utter.lang = opts.lang;
-  utter.rate = opts.rate;
-  utter.pitch = opts.pitch;
-  utter.volume = opts.volume;
-  if (_cachedVoice) utter.voice = _cachedVoice;
+  // cancel 后立即 speak 在 Chrome/Edge 会静默失败，需短暂延迟
+  setTimeout(() => {
+    synth.resume();
 
-  window.speechSynthesis.speak(utter);
+    const opts = { ...SPEECH_DEFAULTS, ...options };
+    const utter = new SpeechSynthesisUtterance(word);
+    utter.lang = opts.lang;
+    utter.rate = opts.rate;
+    utter.pitch = opts.pitch;
+    utter.volume = opts.volume;
+
+    const voice = _cachedVoice || pickBestVoice(synth.getVoices());
+    if (voice) utter.voice = voice;
+
+    synth.speak(utter);
+
+    // 防止 Chrome 语音引擎卡住
+    const resumeId = setInterval(() => {
+      if (synth.speaking || synth.pending) synth.resume();
+      else clearInterval(resumeId);
+    }, 250);
+
+    const cleanup = () => clearInterval(resumeId);
+    utter.onend = cleanup;
+    utter.onerror = cleanup;
+    setTimeout(cleanup, 15000);
+  }, 100);
 }
 
 function speakPhoneme(key, word) {
@@ -454,7 +492,12 @@ function speakPhoneme(key, word) {
   speakWord(text, { rate: p.speakRate || SPEECH_DEFAULTS.rate });
 }
 
-document.addEventListener('DOMContentLoaded', () => initVoice());
+document.addEventListener('DOMContentLoaded', () => {
+  initVoice();
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = () => refreshVoice();
+  }
+});
 
 const PROGRESS_KEY = 'phonetic-planet-progress';
 
