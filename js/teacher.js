@@ -14,6 +14,8 @@ const GameUI = {
   whackEndTimer: null,
   whackTickTimer: null,
   whackTimeLeft: 0,
+  whackPopCount: 0,
+  whackPopsSinceCorrect: 0,
 
   init() {
     this.stage = document.getElementById('gameStage');
@@ -107,8 +109,10 @@ const GameUI = {
     const status = document.getElementById('whackStatus');
     const fill = document.getElementById('whackTimerFill');
 
-    this.whackTimeLeft = 10;
-    if (status) status.textContent = '锤它！找到正确音标的那只地鼠！';
+    this.whackTimeLeft = 15;
+    this.whackPopCount = 0;
+    this.whackPopsSinceCorrect = 0;
+    if (status) status.textContent = '锤它！正确音标的地鼠会多次冒出来～';
     if (fill) fill.style.width = '100%';
 
     this.scheduleWhackPop();
@@ -137,19 +141,37 @@ const GameUI = {
   },
 
   popRandomMole() {
+    const r = GameEngine.getCurrentRound();
     const moles = [...this.stage.querySelectorAll('.whack-mole')];
     if (!moles.length) return;
 
     moles.forEach(m => m.classList.remove('mole-up', 'whack-smash'));
 
-    const idx = Math.floor(Math.random() * moles.length);
-    const mole = moles[idx];
+    const correctMole = moles.find(m => m.dataset.answer === r?.answer);
+    this.whackPopCount++;
+    this.whackPopsSinceCorrect++;
+
+    // 第一次必出正确答案；之后最多隔 1 次干扰必再出；其余 55% 概率出正确答案
+    const mustShowCorrect = this.whackPopCount === 1 || this.whackPopsSinceCorrect >= 2;
+    const showCorrect = correctMole && (mustShowCorrect || Math.random() < 0.55);
+
+    let mole;
+    if (showCorrect) {
+      mole = correctMole;
+      this.whackPopsSinceCorrect = 0;
+    } else {
+      mole = moles[Math.floor(Math.random() * moles.length)];
+      if (mole === correctMole) this.whackPopsSinceCorrect = 0;
+    }
+
     mole.classList.add('mole-up');
+    const isCorrect = mole === correctMole;
+    const stayMs = isCorrect ? 1200 + Math.random() * 400 : 700 + Math.random() * 300;
 
     clearTimeout(this.whackHideTimer);
     this.whackHideTimer = setTimeout(() => {
       mole.classList.remove('mole-up');
-    }, 850 + Math.random() * 350);
+    }, stayMs);
   },
 
   handleWhackClick(btn) {
@@ -173,7 +195,7 @@ const GameUI = {
       if (status) {
         status.textContent = '打错了！继续找～';
         setTimeout(() => {
-          if (this.whackActive && status) status.textContent = '锤它！找到正确音标的那只地鼠！';
+          if (this.whackActive && status) status.textContent = '锤它！正确音标的地鼠会多次冒出来～';
         }, 600);
       }
     }
@@ -197,6 +219,8 @@ const GameUI = {
     this.whackHideTimer = null;
     this.whackEndTimer = null;
     this.whackTickTimer = null;
+    this.whackPopCount = 0;
+    this.whackPopsSinceCorrect = 0;
     this.stage?.querySelectorAll('.whack-mole').forEach(m => {
       m.classList.remove('mole-up', 'whack-smash');
     });

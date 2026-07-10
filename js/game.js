@@ -317,7 +317,7 @@ const GameEngine = {
         <div class="round-header">
           <span class="round-icon">${meta.icon}</span>
           <h2 class="round-title">${meta.name}</h2>
-          <p class="round-desc">先听发音，地鼠冒出时锤中正确的那个！</p>
+          <p class="round-desc">先听发音，正确音标的地鼠会多次冒出来，快锤它！</p>
         </div>
         <button class="btn-play-big" id="btnPlay">🔊 听发音 · 开始</button>
         <div class="whack-timer-bar" id="whackTimerBar">
