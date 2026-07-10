@@ -387,6 +387,33 @@ body {
   animation: wrongShake 0.4s ease;
 }
 
+.option-btn.selected {
+  border-color: var(--accent);
+  background: rgba(56, 189, 248, 0.25);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
+}
+
+.multi-select-panel {
+  margin-top: 0.5rem;
+}
+
+.multi-select-hint {
+  text-align: center;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+.multi-select-hint strong {
+  color: var(--accent);
+}
+
+.btn-confirm-multi {
+  display: block;
+  margin: 1.25rem auto 0;
+  min-width: 160px;
+}
+
 @keyframes correctPop {
   0% { transform: scale(1); }
   50% { transform: scale(1.08); }

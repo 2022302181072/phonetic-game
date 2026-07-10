@@ -368,6 +368,105 @@ function assignRoundWord(targetKey, wordUsed) {
   return word;
 }
 
+/** 单词 → 所含 48 音标 key（按出现顺序） */
+const WORD_PHONEMES = {
+  pen: ['p', 'e', 'n'], pig: ['p', 'ɪ', 'g'], park: ['p', 'ɑː', 'k'], put: ['p', 'ʊ', 't'],
+  ten: ['t', 'e', 'n'], tea: ['t', 'iː'], top: ['t', 'ɒ', 'p'], toy: ['t', 'ɔɪ'],
+  cat: ['k', 'æ', 't'], cup: ['k', 'ʌ', 'p'], kite: ['k', 'aɪ', 't'], kid: ['k', 'ɪ', 'd'],
+  fish: ['f', 'ɪ', 'ʃ'], face: ['f', 'eɪ', 's'], fun: ['f', 'ʌ', 'n'], four: ['f', 'ɔː'],
+  see: ['s', 'iː'], sun: ['s', 'ʌ', 'n'], sit: ['s', 'ɪ', 't'], say: ['s', 'eɪ'],
+  hat: ['h', 'æ', 't'], hi: ['h', 'aɪ'], hen: ['h', 'e', 'n'], home: ['h', 'əʊ', 'm'],
+  book: ['b', 'ʊ', 'k'], bag: ['b', 'æ', 'g'], big: ['b', 'ɪ', 'g'], ball: ['b', 'ɔː', 'l'],
+  dog: ['d', 'ɒ', 'g'], day: ['d', 'eɪ'], door: ['d', 'ɔː'], duck: ['d', 'ʌ', 'k'],
+  go: ['g', 'əʊ'], girl: ['g', 'ɜː', 'l'], game: ['g', 'eɪ', 'm'], get: ['g', 'e', 't'],
+  very: ['v', 'e', 'r', 'i'], van: ['v', 'æ', 'n'], voice: ['v', 'ɔɪ', 's'], five: ['f', 'aɪ', 'v'],
+  zoo: ['z', 'uː'], zero: ['z', 'ɪ', 'r', 'əʊ'], zip: ['z', 'ɪ', 'p'], buzz: ['b', 'ʌ', 'z'],
+  red: ['r', 'e', 'd'], run: ['r', 'ʌ', 'n'], rain: ['r', 'eɪ', 'n'], ring: ['r', 'ɪ', 'ŋ'],
+  man: ['m', 'æ', 'n'], map: ['m', 'æ', 'p'], moon: ['m', 'uː', 'n'], milk: ['m', 'ɪ', 'l', 'k'],
+  no: ['n', 'əʊ'], net: ['n', 'e', 't'], nine: ['n', 'aɪ', 'n'], nose: ['n', 'əʊ', 'z'],
+  sing: ['s', 'ɪ', 'ŋ'], song: ['s', 'ɒ', 'ŋ'], long: ['l', 'ɒ', 'ŋ'], king: ['k', 'ɪ', 'ŋ'],
+  we: ['w', 'iː'], wet: ['w', 'e', 't'], win: ['w', 'ɪ', 'n'], web: ['w', 'e', 'b'],
+  yes: ['j', 'e', 's'], you: ['j', 'uː'], yellow: ['j', 'e', 'l', 'əʊ'], yard: ['j', 'ɑː', 'd'],
+  leg: ['l', 'e', 'g'], lamp: ['l', 'æ', 'm', 'p'], like: ['l', 'aɪ', 'k'], log: ['l', 'ɒ', 'g'],
+  think: ['θ', 'ɪ', 'ŋ', 'k'], three: ['θ', 'r', 'iː'], math: ['m', 'æ', 'θ'], thank: ['θ', 'æ', 'ŋ', 'k'],
+  this: ['ð', 'ɪ', 's'], that: ['ð', 'æ', 't'], mother: ['m', 'ʌ', 'ð', 'ə'], with: ['w', 'ɪ', 'ð'],
+  ship: ['ʃ', 'ɪ', 'p'], shop: ['ʃ', 'ɒ', 'p'], shoe: ['ʃ', 'uː'], wash: ['w', 'ɒ', 'ʃ'],
+  vision: ['v', 'ɪ', 'ʒ', 'ə', 'n'], pleasure: ['p', 'l', 'e', 'ʒ', 'ə'], measure: ['m', 'e', 'ʒ', 'ə'],
+  garage: ['g', 'æ', 'r', 'ɑː', 'ʒ'],
+  chair: ['tʃ', 'eə'], cheese: ['tʃ', 'iː', 'z'], church: ['tʃ', 'ɜː', 'tʃ'], watch: ['w', 'ɒ', 'tʃ'],
+  jump: ['dʒ', 'ʌ', 'm', 'p'], joy: ['dʒ', 'ɔɪ'], juice: ['dʒ', 'uː', 's'], bridge: ['b', 'r', 'ɪ', 'dʒ'],
+  tree: ['tr', 'iː'], train: ['tr', 'eɪ', 'n'], try: ['tr', 'aɪ'], trip: ['tr', 'ɪ', 'p'],
+  dress: ['dr', 'e', 's'], drink: ['dr', 'ɪ', 'ŋ', 'k'], draw: ['dr', 'ɔː'], drive: ['dr', 'aɪ', 'v'],
+  cats: ['k', 'æ', 'ts'], hats: ['h', 'æ', 'ts'], sits: ['s', 'ɪ', 'ts'], lots: ['l', 'ɒ', 'ts'],
+  beds: ['b', 'e', 'dz'], cards: ['k', 'ɑː', 'dz'], rides: ['r', 'aɪ', 'dz'], hands: ['h', 'æ', 'n', 'dz'],
+  hot: ['h', 'ɒ', 't'], box: ['b', 'ɒ', 'k', 's'], stop: ['s', 't', 'ɒ', 'p'],
+  car: ['k', 'ɑː'], star: ['s', 't', 'ɑː'], far: ['f', 'ɑː'],
+  about: ['ə', 'b', 'aʊ', 't'], away: ['ə', 'w', 'eɪ'], again: ['ə', 'g', 'e', 'n'], ago: ['ə', 'g', 'əʊ'],
+  bird: ['b', 'ɜː', 'd'], word: ['w', 'ɜː', 'd'], learn: ['l', 'ɜː', 'n'],
+  too: ['t', 'uː'], food: ['f', 'uː', 'd'], blue: ['b', 'l', 'uː'],
+  bed: ['b', 'e', 'd'], met: ['m', 'e', 't'], head: ['h', 'e', 'd'],
+  more: ['m', 'ɔː'], walk: ['w', 'ɔː', 'k'], bus: ['b', 'ʌ', 's'], love: ['l', 'ʌ', 'v'],
+  meet: ['m', 'iː', 't'], good: ['g', 'ʊ', 'd'], look: ['l', 'ʊ', 'k'], foot: ['f', 'ʊ', 't'],
+  make: ['m', 'eɪ', 'k'], name: ['n', 'eɪ', 'm'], play: ['p', 'l', 'eɪ'],
+  time: ['t', 'aɪ', 'm'], fly: ['f', 'l', 'aɪ'],
+  boat: ['b', 'əʊ', 't'], now: ['n', 'aʊ'], how: ['h', 'aʊ'], out: ['aʊ', 't'], house: ['h', 'aʊ', 's'],
+  join: ['dʒ', 'ɔɪ', 'n'], coin: ['k', 'ɔɪ', 'n'],
+  ear: ['ɪə'], here: ['h', 'ɪə'], near: ['n', 'ɪə'], dear: ['d', 'ɪə'],
+  air: ['eə'], hair: ['h', 'eə'], care: ['k', 'eə'], share: ['ʃ', 'eə'],
+  poor: ['p', 'ʊə'], tour: ['t', 'ʊə'], sure: ['ʃ', 'ʊə'], cure: ['k', 'j', 'ʊə'],
+  jam: ['dʒ', 'æ', 'm'], drum: ['dr', 'ʌ', 'm'], thin: ['θ', 'ɪ', 'n'], asia: ['eɪ', 'ʒ', 'ə'],
+  sofa: ['s', 'əʊ', 'f', 'ə'], cap: ['k', 'æ', 'p'], cake: ['k', 'eɪ', 'k'],
+  ice: ['aɪ', 's'], cow: ['k', 'aʊ'], pear: ['p', 'eə'], chip: ['tʃ', 'ɪ', 'p']
+};
+
+function getWordPhonemeKeys(word) {
+  const w = (word || '').toLowerCase().trim();
+  return WORD_PHONEMES[w] ? [...WORD_PHONEMES[w]] : null;
+}
+
+/** 根据单词在本课范围内应选的全部音标 */
+function resolveLessonAnswerKeys(word, primaryKey, lessonSymbols) {
+  const all = getWordPhonemeKeys(word);
+  if (all) {
+    const seen = new Set();
+    const inLesson = all.filter(k => {
+      if (!lessonSymbols.includes(k) || seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+    if (inLesson.length >= 2) {
+      return { answerKeys: inLesson, multiSelect: true };
+    }
+  }
+  return { answerKeys: [primaryKey], multiSelect: false };
+}
+
+/** 为选音标题目补充多选答案与选项 */
+function enrichSymbolRound(round, symbols) {
+  const { answerKeys, multiSelect } = resolveLessonAnswerKeys(
+    round.roundWord, round.targetKey, symbols
+  );
+  round.answerKeys = answerKeys;
+  round.multiSelect = multiSelect;
+
+  if (multiSelect) {
+    round.answer = answerKeys.slice().sort().join('|');
+    const minOpts = Math.max(6, answerKeys.length + 2);
+    const optCount = Math.min(Math.max(minOpts, 6), symbols.length);
+    const decoys = pickRandom(symbols, optCount - answerKeys.length, answerKeys);
+    round.options = shuffle([...new Set([...answerKeys, ...decoys])]);
+  } else {
+    round.answer = answerKeys[0];
+    if (round.options && !round.options.includes(answerKeys[0])) {
+      round.options = shuffle([
+        ...pickRandom(symbols, Math.min(3, symbols.length - 1), [answerKeys[0]]),
+        answerKeys[0]
+      ]);
+    }
+  }
+  return round;
+}
+
 function getDescribeEntry(key) {
   return DESCRIBE_WORDS[key] || { word: PHONEMES[key].word, hint: PHONEMES[key].hint };
 }

@@ -94,6 +94,11 @@ const GameUI = {
       return;
     }
 
+    if (r?.multiSelect) {
+      this.bindMultiSelectEvents();
+      return;
+    }
+
     this.stage.querySelectorAll('[data-answer]').forEach(btn => {
       btn.addEventListener('click', () => {
         if (GameEngine.locked) return;
@@ -234,6 +239,55 @@ const GameUI = {
     speakPhoneme(r.targetKey, r.roundWord);
   },
 
+  bindMultiSelectEvents() {
+    this.stage.querySelectorAll('.multi-option').forEach(btn => {
+      btn.addEventListener('click', () => this.toggleMultiOption(btn));
+    });
+    document.getElementById('btnConfirmMulti')?.addEventListener('click', () => {
+      this.handleMultiConfirm();
+    });
+  },
+
+  toggleMultiOption(btn) {
+    if (GameEngine.locked) return;
+    btn.classList.toggle('selected');
+  },
+
+  handleMultiConfirm() {
+    if (GameEngine.locked) return;
+
+    const r = GameEngine.getCurrentRound();
+    const selected = [...this.stage.querySelectorAll('.multi-option.selected')]
+      .map(b => b.dataset.answer)
+      .sort();
+    const expected = (r.answerKeys || []).slice().sort();
+    const isCorrect = selected.length === expected.length &&
+      selected.every((k, i) => k === expected[i]);
+
+    if (isCorrect) {
+      const joined = selected.join('|');
+      this.stage.querySelectorAll('.multi-option').forEach(btn => {
+        if (expected.includes(btn.dataset.answer)) btn.classList.add('selected');
+      });
+      this.handleAnswer(joined, null);
+      return;
+    }
+
+    this.stage.querySelectorAll('.multi-option.selected').forEach(btn => {
+      btn.classList.add('wrong');
+    });
+    const hint = selected.length < expected.length
+      ? '还有遗漏或选错了，请重选'
+      : '选错了，请重选';
+    this.showFeedback(false, r, hint);
+
+    setTimeout(() => {
+      this.stage.querySelectorAll('.multi-option').forEach(btn => {
+        btn.classList.remove('selected', 'wrong');
+      });
+    }, 900);
+  },
+
   revealDescribeContent() {
     const panel = document.getElementById('describeReadyPanel');
     const content = document.getElementById('describeContent');
@@ -241,6 +295,12 @@ const GameUI = {
     if (content) {
       content.hidden = false;
       content.classList.add('describe-revealed');
+    }
+
+    const r = GameEngine.getCurrentRound();
+    if (r?.multiSelect) {
+      this.bindMultiSelectEvents();
+      return;
     }
 
     this.stage.querySelectorAll('[data-answer]').forEach(btn => {
@@ -264,9 +324,15 @@ const GameUI = {
 
     this.stage.querySelectorAll('[data-answer]').forEach(btn => {
       btn.disabled = true;
-      if (btn.dataset.answer === r.answer) btn.classList.add('correct');
-      else if (clickedBtn && btn === clickedBtn) btn.classList.add('wrong');
+      if (r.multiSelect && r.answerKeys?.includes(btn.dataset.answer)) {
+        btn.classList.add('correct');
+      } else if (btn.dataset.answer === r.answer) {
+        btn.classList.add('correct');
+      } else if (clickedBtn && btn === clickedBtn) {
+        btn.classList.add('wrong');
+      }
     });
+    document.getElementById('btnConfirmMulti')?.setAttribute('disabled', 'true');
 
     this.showFeedback(isCorrect, r);
     this.updateHUD();
@@ -282,12 +348,12 @@ const GameUI = {
     }, isCorrect ? 1400 : 2000);
   },
 
-  showFeedback(isCorrect, round) {
+  showFeedback(isCorrect, round, customSub) {
     if (!this.feedbackEl) return;
     const text = isCorrect
       ? (GameEngine.combo >= 3 ? `✓ 正确！ ${GameEngine.combo} 连击！` : '✓ 正确！')
       : `✗ 不对哦`;
-    const sub = isCorrect ? '' : `正确答案：${GameEngine.formatAnswer(round)}`;
+    const sub = isCorrect ? '' : (customSub || `正确答案：${GameEngine.formatAnswer(round)}`);
 
     this.feedbackEl.innerHTML = `
       <div class="burst-card ${isCorrect ? 'correct' : 'wrong'}">

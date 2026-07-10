@@ -42,7 +42,15 @@ const GameEngine = {
       rounds.push(...generated);
     });
 
-    return shuffle(rounds);
+    return shuffle(rounds.map(r => this.finalizeRound(r, symbols)));
+  },
+
+  finalizeRound(round, symbols) {
+    const gridTypes = ['listen', 'match', 'describe', 'glide', 'speed'];
+    if (gridTypes.includes(round.type) && round.options) {
+      return enrichSymbolRound(round, symbols);
+    }
+    return round;
   },
 
   createRound(type, targetKey, wordUsed, extra = {}) {
@@ -255,6 +263,10 @@ const GameEngine = {
       case 'short-long':
         return r.target.type === 'short' ? `短元音 ${r.target.symbol}` : `长元音 ${r.target.symbol}`;
       default:
+        if (r.multiSelect && r.answerKeys?.length) {
+          const syms = r.answerKeys.map(k => PHONEMES[k].symbol).join(' + ');
+          return `${syms} · ${word}`;
+        }
         return `${r.target.symbol} · ${word}`;
     }
   },
@@ -351,12 +363,12 @@ const GameEngine = {
           <div class="describe-class-card">
             <div class="describe-class-label">👥 全班可见</div>
             <div class="describe-word">${r.roundWord}</div>
-            <div class="describe-phoneme">目标音标：<span>${r.target.symbol}</span></div>
+            <div class="describe-phoneme">目标音标：<span>${r.multiSelect ? r.answerKeys.map(k => PHONEMES[k].symbol).join(' + ') : r.target.symbol}</span></div>
             <button class="btn-play-small" id="btnPlay" type="button">🔊 听单词（可选）</button>
           </div>
           <div class="describe-guess-section">
-            <div class="describe-guess-label">🎯 猜音标的同学，请选出答案：</div>
-            <div class="options-grid describe-options">${this.renderSymbolGrid(r)}</div>
+            <div class="describe-guess-label">🎯 猜音标的同学，请选出答案${r.multiSelect ? '（多选，全部选对才算正确）' : ''}：</div>
+            ${this.renderSymbolOptions(r)}
           </div>
         </div>
       </div>
@@ -369,10 +381,10 @@ const GameEngine = {
         <div class="round-header">
           <span class="round-icon">${meta.icon}</span>
           <h2 class="round-title">${meta.name}</h2>
-          <p class="round-desc">听发音，点击正确的音标</p>
+          <p class="round-desc">${r.multiSelect ? '听发音，选出单词中的全部音标后确认' : '听发音，点击正确的音标'}</p>
         </div>
         <button class="btn-play-big" id="btnPlay">🔊 点击播放</button>
-        <div class="options-grid">${this.renderSymbolGrid(r)}</div>
+        ${this.renderSymbolOptions(r)}
       </div>
     `;
   },
@@ -385,11 +397,11 @@ const GameEngine = {
           <h2 class="round-title">${meta.name}</h2>
         </div>
         <div class="match-word-card">
-          <div class="match-word-label">这个单词的音标是？</div>
+          <div class="match-word-label">${r.multiSelect ? '这个单词包含哪些音标？（多选）' : '这个单词的音标是？'}</div>
           <div class="match-word">${this.getRoundWord(r)}</div>
           <button class="btn-play-small" id="btnPlay">🔊 听发音</button>
         </div>
-        <div class="options-grid">${this.renderSymbolGrid(r)}</div>
+        ${this.renderSymbolOptions(r)}
       </div>
     `;
   },
@@ -490,7 +502,7 @@ const GameEngine = {
           <span class="comet-trail">✦</span>
           <span class="glide-node end">${parts[1]?.trim()}</span>
         </div>
-        <div class="options-grid">${this.renderSymbolGrid(r)}</div>
+        ${this.renderSymbolOptions(r)}
       </div>
     `;
   },
@@ -507,15 +519,27 @@ const GameEngine = {
           <div class="speed-timer-fill" id="speedTimerFill"></div>
         </div>
         <button class="btn-play-big" id="btnPlay">🔊 点击播放</button>
-        <div class="options-grid">${this.renderSymbolGrid(r)}</div>
+        ${this.renderSymbolOptions(r)}
       </div>
     `;
   },
 
-  renderSymbolGrid(r) {
-    return r.options.map(key => {
+  renderSymbolOptions(r) {
+    const grid = r.options.map(key => {
       const p = PHONEMES[key];
-      return `<button class="option-btn grid-btn" data-answer="${key}">${p.symbol}</button>`;
+      const cls = r.multiSelect ? 'option-btn grid-btn multi-option' : 'option-btn grid-btn';
+      return `<button class="${cls}" data-answer="${key}" type="button">${p.symbol}</button>`;
     }).join('');
+
+    if (r.multiSelect) {
+      return `
+        <div class="multi-select-panel">
+          <p class="multi-select-hint">这个单词包含多个本课音标，请选出<strong>全部</strong>后再确认</p>
+          <div class="options-grid multi-grid">${grid}</div>
+          <button class="btn btn-primary btn-confirm-multi" id="btnConfirmMulti" type="button">确认答案</button>
+        </div>
+      `;
+    }
+    return `<div class="options-grid">${grid}</div>`;
   }
 };
