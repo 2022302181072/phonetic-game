@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>闯关 - 48 音标大挑战</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="lesson" class="game-page">
+  <header class="game-header" id="gameHeader">
+    <button class="btn-icon" id="btnBack" title="返回">←</button>
+    <div class="game-header-center">
+      <span class="game-level" id="gameLevel">第 1 关</span>
+      <span class="game-mode-tag" id="gameModeTag"></span>
+    </div>
+    <div class="game-header-right">
+      <span class="combo-display" id="comboDisplay"></span>
+      <span class="score-display" id="scoreDisplay">0 分</span>
+    </div>
+  </header>
+
+  <div class="game-progress-bar">
+    <div class="game-progress-fill" id="progressFill"></div>
+  </div>
+
+  <main class="game-stage" id="gameStage">
+    <p class="loading-text">加载中...</p>
+  </main>
+
+  <footer class="game-footer">
+    <button class="btn btn-replay" id="btnReplay">🔊 再听一遍</button>
+    <span class="game-counter" id="gameCounter">1 / 12</span>
+  </footer>
+
+  <div class="result-overlay" id="resultOverlay" hidden>
+    <div class="result-card" id="resultCard"></div>
+  </div>
+
+  <div class="feedback-burst" id="feedbackBurst"></div>
+  <canvas class="confetti-canvas" id="confettiCanvas"></canvas>
+
+  <script src="js/data.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/teacher.js"></script>
+</body>
+</html>

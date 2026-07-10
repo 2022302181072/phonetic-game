@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>48 音标大挑战</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="index">
+  <div class="home-minimal">
+    <div class="home-center">
+      <div class="home-logo">🎮</div>
+      <h1>48 音标大挑战</h1>
+      <p class="home-tagline">7 节课 · 48 个音标 · 听音闯关</p>
+
+      <div class="level-list" id="levelList"></div>
+
+      <p class="home-stats" id="homeStats"></p>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const progress = loadProgress();
+      const list = document.getElementById('levelList');
+
+      LESSONS.forEach(lesson => {
+        const done = progress.completed.includes(lesson.id);
+        const score = progress.scores[lesson.id];
+        const card = document.createElement('a');
+        card.href = `lesson.html?id=${lesson.id}`;
+        card.className = `level-card ${lesson.region} ${done ? 'done' : ''}`;
+        card.innerHTML = `
+          <span class="level-num">${lesson.id}</span>
+          <span class="level-info">
+            <span class="level-title">${lesson.title}</span>
+            <span class="level-sub">${lesson.subtitle}${lesson.desc ? ' · ' + lesson.desc : ''}</span>
+          </span>
+          ${done ? `<span class="level-score">${score}%</span>` : '<span class="level-arrow">→</span>'}
+        `;
+        list.appendChild(card);
+      });
+
+      const doneCount = progress.completed.length;
+      document.getElementById('homeStats').textContent =
+        doneCount > 0 ? `已通关 ${doneCount}/7 课 · 共 48 个音标` : '选择课程开始游戏';
+    });
+  </script>
+</body>
+</html>
